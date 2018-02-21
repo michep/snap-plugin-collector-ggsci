@@ -17,11 +17,13 @@ const (
 	PluginVersion = 1
 	PluginVedor   = "mfms"
 	ggsciPath     = "ggsci_path"
+	ggsciSrc      = "ggsci_src"
 )
 
 type Plugin struct {
 	initialized bool
 	ggsciPath   string
+	ggsciSrc    string
 }
 
 type parseResult struct {
@@ -38,6 +40,7 @@ func NewCollector() *Plugin {
 func (p *Plugin) GetConfigPolicy() (plugin.ConfigPolicy, error) {
 	policy := plugin.NewConfigPolicy()
 	policy.AddNewStringRule([]string{PluginVedor, PluginName}, ggsciPath, true)
+	policy.AddNewStringRule([]string{PluginVedor, PluginName}, ggsciSrc, true)
 	return *policy, nil
 }
 
@@ -59,6 +62,10 @@ func (p *Plugin) CollectMetrics(metrics []plugin.Metric) ([]plugin.Metric, error
 
 	if !p.initialized {
 		p.ggsciPath, err = metrics[0].Config.GetString(ggsciPath)
+		if err != nil {
+			return nil, err
+		}
+		p.ggsciSrc, err = metrics[0].Config.GetString(ggsciSrc)
 		if err != nil {
 			return nil, err
 		}
@@ -120,6 +127,7 @@ func (p *Plugin) CollectMetrics(metrics []plugin.Metric) ([]plugin.Metric, error
 				}
 				mt.Namespace[2].Value = result.component
 				mt.Namespace[3].Value = result.name
+				mt.Namespace[4].Value = p.ggsciSrc
 				if mt.Data = 1; result.state == "RUNNING" {
 					mt.Data = 0
 				}
@@ -136,6 +144,7 @@ func (p *Plugin) CollectMetrics(metrics []plugin.Metric) ([]plugin.Metric, error
 				}
 				mt.Namespace[2].Value = result.component
 				mt.Namespace[3].Value = result.name
+				mt.Namespace[4].Value = p.ggsciSrc
 				mt.Data = result.lag
 				mts = append(mts, mt)
 			}
@@ -173,6 +182,7 @@ func createNamespace(lastelement string) plugin.Namespace {
 	namespace := plugin.NewNamespace(PluginVedor, PluginName)
 	namespace = namespace.AddDynamicElement("component", "component type")
 	namespace = namespace.AddDynamicElement("name", "component name")
+	namespace = namespace.AddDynamicElement("src", "source database")
 	namespace = namespace.AddStaticElement(lastelement)
 	return namespace
 }
